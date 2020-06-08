@@ -34,6 +34,7 @@ const (
 
 	tablesKey       = "tables"
 	superSchemasKey = "super_schemas"
+	foreignKeyKey   = "foreign_key"
 )
 
 // RootValue defines the structure used inside all Liquidata noms dbs
@@ -49,7 +50,7 @@ type DocDetails struct {
 	File      string
 }
 
-func NewRootValue(ctx context.Context, vrw types.ValueReadWriter, tables map[string]hash.Hash, ssMap types.Map) (*RootValue, error) {
+func NewRootValue(ctx context.Context, vrw types.ValueReadWriter, tables map[string]hash.Hash, ssMap types.Map, fkMap types.Map) (*RootValue, error) {
 	values := make([]types.Value, 2*len(tables))
 
 	index := 0
@@ -80,7 +81,7 @@ func NewRootValue(ctx context.Context, vrw types.ValueReadWriter, tables map[str
 		return nil, err
 	}
 
-	return newRootFromMaps(vrw, tblMap, ssMap)
+	return newRootFromMaps(vrw, tblMap, ssMap, fkMap)
 }
 
 func newRootValue(vrw types.ValueReadWriter, st types.Struct) *RootValue {
@@ -100,13 +101,20 @@ func emptyRootValue(ctx context.Context, vrw types.ValueReadWriter) (*RootValue,
 		return nil, err
 	}
 
-	return newRootFromMaps(vrw, m, mm)
+	mmm, err := types.NewMap(ctx, vrw)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return newRootFromMaps(vrw, m, mm, mmm)
 }
 
-func newRootFromMaps(vrw types.ValueReadWriter, tblMap types.Map, ssMap types.Map) (*RootValue, error) {
+func newRootFromMaps(vrw types.ValueReadWriter, tblMap types.Map, ssMap types.Map, fkMap types.Map) (*RootValue, error) {
 	sd := types.StructData{
 		tablesKey:       tblMap,
 		superSchemasKey: ssMap,
+		foreignKeyKey:   fkMap,
 	}
 
 	st, err := types.NewStruct(vrw.Format(), ddbRootStructName, sd)
@@ -945,10 +953,25 @@ func (root *RootValue) RenameTable(ctx context.Context, oldName, newName string)
 		return newRootValue(root.vrw, rootValSt), nil
 	}
 
+	foreignKeyCollection, err := root.GetForeignKeyCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+	foreignKeyCollection.RenameTable(oldName, newName)
+	fkMap, err := foreignKeyCollection.Map(ctx, root.vrw)
+	if err != nil {
+		return nil, err
+	}
+	rootValSt, err = rootValSt.Set(foreignKeyKey, fkMap)
+	if err != nil {
+		return nil, err
+	}
+
 	return newRootValue(root.vrw, rootValSt), nil
 }
 
 func (root *RootValue) RemoveTables(ctx context.Context, tables ...string) (*RootValue, error) {
+	//TODO: prevent table removal when it would invalidate a foreign key
 	tableMap, err := root.getTableMap()
 
 	if err != nil {
@@ -1029,6 +1052,44 @@ func (root *RootValue) DocDiff(ctx context.Context, other *RootValue, docDetails
 
 	a, m, r := GetDocDiffsFromDocDetails(ctx, docDetailsBtwnRoots)
 	return a, m, r, nil
+}
+
+func (root *RootValue) GetForeignKeyCollection(ctx context.Context) (*ForeignKeyCollection, error) {
+	fkMap, err := root.GetForeignKeyCollectionMap(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewForeignKeyCollection(ctx, fkMap)
+}
+
+func (root *RootValue) GetForeignKeyCollectionMap(ctx context.Context) (types.Map, error) {
+	v, found, err := root.valueSt.MaybeGet(foreignKeyKey)
+	if err != nil {
+		return types.EmptyMap, err
+	}
+
+	var fkMap types.Map
+	if found {
+		fkMap = v.(types.Map)
+	} else {
+		fkMap, err = types.NewMap(ctx, root.vrw)
+		if err != nil {
+			return types.EmptyMap, err
+		}
+	}
+	return fkMap, nil
+}
+
+func (root *RootValue) PutForeignKeyCollection(ctx context.Context, fkc *ForeignKeyCollection) (*RootValue, error) {
+	fkMap, err := fkc.Map(ctx, root.vrw)
+	if err != nil {
+		return nil, err
+	}
+	rootValSt, err := root.valueSt.Set(foreignKeyKey, fkMap)
+	if err != nil {
+		return nil, err
+	}
+	return newRootValue(root.vrw, rootValSt), nil
 }
 
 func getDocDetailsBtwnRoots(ctx context.Context, newTbl *Table, newSch schema.Schema, newTblFound bool, oldTbl *Table, oldSch schema.Schema, oldTblFound bool) ([]DocDetails, error) {

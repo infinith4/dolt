@@ -394,6 +394,10 @@ github.com/lightstep/lightstep-tracer-common/golang/gogo v0.0.0-20190605223551-b
 github.com/lightstep/lightstep-tracer-go v0.18.1/go.mod h1:jlF1pusYV4pidLvZ+XD0UBX0ZE6WURAspgAczcDHrL4=
 github.com/liquidata-inc/go-mysql-server v0.5.1-0.20200605170723-cd4f84b39578 h1:fDv4huMp1Ubh/qVkkStpKxE1LgEIaLLQIkN5NUwAMBE=
 github.com/liquidata-inc/go-mysql-server v0.5.1-0.20200605170723-cd4f84b39578/go.mod h1:Qo0l83LdX5Z77p0tTLyJTrttZywFm0S+RYo6Shi97tw=
+github.com/liquidata-inc/go-mysql-server v0.5.1-0.20200606005700-3b6eab8cdc48 h1:IjZKTpd+NkjAjgCu8uEm2uTg0ch8oNy8OJB3HM5y3AM=
+github.com/liquidata-inc/go-mysql-server v0.5.1-0.20200606005700-3b6eab8cdc48/go.mod h1:KpDrkND/K8cIC0xAQx6EKsi5swStwzqJWdlQ2XRZetM=
+github.com/liquidata-inc/go-mysql-server v0.5.1-0.20200608051805-66ea0ede6042 h1:ycvB0HzDjX7wh2VHi1QjhU3lOCDzh3epk1n0J07Q6PI=
+github.com/liquidata-inc/go-mysql-server v0.5.1-0.20200608051805-66ea0ede6042/go.mod h1:KpDrkND/K8cIC0xAQx6EKsi5swStwzqJWdlQ2XRZetM=
 github.com/liquidata-inc/ishell v0.0.0-20190514193646-693241f1f2a0 h1:phMgajKClMUiIr+hF2LGt8KRuUa2Vd2GI1sNgHgSXoU=
 github.com/liquidata-inc/ishell v0.0.0-20190514193646-693241f1f2a0/go.mod h1:YC1rI9k5gx8D02ljlbxDfZe80s/iq8bGvaaQsvR+qxs=
 github.com/liquidata-inc/mmap-go v1.0.3 h1:2LndAeAtup9rpvUmu4wZSYCsjCQ0Zpc+NqE+6+PnT7g=
@@ -402,6 +406,8 @@ github.com/liquidata-inc/sqllogictest/go v0.0.0-20200320151923-b11801f10e15 h1:H
 github.com/liquidata-inc/sqllogictest/go v0.0.0-20200320151923-b11801f10e15/go.mod h1:kKRVtyuomkqz15YFRpS0OT8kpsU8y/F3jyiZtvALdKU=
 github.com/liquidata-inc/vitess v0.0.0-20200430040751-192bb76ecd8b h1:bD5IABLonIOYGXmXnEtHgJgdZArEh7yi9mUdp4e30JM=
 github.com/liquidata-inc/vitess v0.0.0-20200430040751-192bb76ecd8b/go.mod h1:vn/QvIl/1+N6+qjheejcLt8jmX2kQSQwFinzZuoY1VY=
+github.com/liquidata-inc/vitess v0.0.0-20200604002149-44dae2034412 h1:zuc2t2NXPnVWVhuXGKNMS8RXO0NJVruQuoCB+M+OvAs=
+github.com/liquidata-inc/vitess v0.0.0-20200604002149-44dae2034412/go.mod h1:zCpP+FJseQinxNM5gkVPahLzv7lt3YI0aSvrT5k95Qk=
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/markbates/oncer v0.0.0-20181203154359-bf2de49a0be2/go.mod h1:Ld9puTsIW75CHf65OeIOkyKbteujpZVXDpWK6YGZbxE=

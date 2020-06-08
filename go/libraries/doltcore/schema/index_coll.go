@@ -17,6 +17,7 @@ package schema
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 type IndexCollection interface {
@@ -24,9 +25,9 @@ type IndexCollection interface {
 	// It does not perform any kind of checking, and is intended for schema modifications.
 	AddIndex(indexes ...Index)
 	// AddIndexByColNames adds an index with the given name and columns (in index order).
-	AddIndexByColNames(indexName string, cols []string, isUnique bool, comment string) (Index, error)
+	AddIndexByColNames(indexName string, cols []string, isUnique bool, comment string, isHidden bool) (Index, error)
 	// AddIndexByColTags adds an index with the given name and column tags (in index order).
-	AddIndexByColTags(indexName string, tags []uint64, isUnique bool, comment string) (Index, error)
+	AddIndexByColTags(indexName string, tags []uint64, isUnique bool, comment string, isHidden bool) (Index, error)
 	// AllIndexes returns a slice containing all of the indexes in this collection.
 	AllIndexes() []Index
 	// Contains returns whether the given index name already exists for this table.
@@ -35,11 +36,11 @@ type IndexCollection interface {
 	Count() int
 	// Get returns the index with the given name, or nil if it does not exist.
 	Get(indexName string) Index
-	// HasIndexes returns whether this collection has any indexes.
-	HasIndexes() bool
 	// HasIndexOnColumns returns whether the collection contains an index that has this exact collection and ordering of columns.
+	// Any hidden indexes are ignored.
 	HasIndexOnColumns(cols ...string) bool
 	// HasIndexOnTags returns whether the collection contains an index that has this exact collection and ordering of columns.
+	// Any hidden indexes are ignored.
 	HasIndexOnTags(tags ...uint64) bool
 	// IndexesWithColumn returns all indexes that index the given column.
 	IndexesWithColumn(columnName string) []Index
@@ -104,29 +105,37 @@ func (ixc *indexCollectionImpl) AddIndex(indexes ...Index) {
 	}
 }
 
-func (ixc *indexCollectionImpl) AddIndexByColNames(indexName string, cols []string, isUnique bool, comment string) (Index, error) {
+func (ixc *indexCollectionImpl) AddIndexByColNames(indexName string, cols []string, isUnique bool, comment string, isHidden bool) (Index, error) {
 	tags, ok := ixc.columnNamesToTags(cols)
 	if !ok {
 		return nil, fmt.Errorf("the table does not contain at least one of the following columns: `%v`", cols)
 	}
-	return ixc.AddIndexByColTags(indexName, tags, isUnique, comment)
+	return ixc.AddIndexByColTags(indexName, tags, isUnique, comment, isHidden)
 }
 
-func (ixc *indexCollectionImpl) AddIndexByColTags(indexName string, tags []uint64, isUnique bool, comment string) (Index, error) {
+func (ixc *indexCollectionImpl) AddIndexByColTags(indexName string, tags []uint64, isUnique bool, comment string, isHidden bool) (Index, error) {
+	if isHidden && !strings.HasPrefix(indexName, "dolt_") {
+		return nil, fmt.Errorf("hidden indexes must be prefixed with `dolt_`")
+	} else if !isHidden && strings.HasPrefix(indexName, "dolt_") {
+		return nil, fmt.Errorf("indexes cannot be prefixed with `dolt_`")
+	}
 	if ixc.Contains(indexName) {
 		return nil, fmt.Errorf("`%s` already exists as an index for this table", indexName)
 	}
 	if !ixc.tagsExist(tags...) {
 		return nil, fmt.Errorf("tags %v do not exist on this table", tags)
 	}
-	if ixc.HasIndexOnTags(tags...) {
-		return nil, fmt.Errorf("cannot create a duplicate index on this table")
+	if !isHidden {
+		if ixc.HasIndexOnTags(tags...) {
+			return nil, fmt.Errorf("cannot create a duplicate index on this table")
+		}
 	}
 	index := &indexImpl{
 		indexColl: ixc,
 		name:      indexName,
 		tags:      tags,
 		allTags:   combineAllTags(tags, ixc.pks),
+		isHidden:  isHidden,
 		isUnique:  isUnique,
 		comment:   comment,
 	}
@@ -167,13 +176,6 @@ func (ixc *indexCollectionImpl) Get(indexName string) Index {
 	return nil
 }
 
-func (ixc *indexCollectionImpl) HasIndexes() bool {
-	if len(ixc.indexes) > 0 {
-		return true
-	}
-	return false
-}
-
 func (ixc *indexCollectionImpl) HasIndexOnColumns(cols ...string) bool {
 	tags := make([]uint64, len(cols))
 	for i, col := range cols {
@@ -188,7 +190,7 @@ func (ixc *indexCollectionImpl) HasIndexOnColumns(cols ...string) bool {
 
 func (ixc *indexCollectionImpl) HasIndexOnTags(tags ...uint64) bool {
 	idx := ixc.containsColumnTagCollection(tags...)
-	if idx == nil {
+	if idx == nil || idx.isHidden {
 		return false
 	}
 	return true
